@@ -901,6 +901,7 @@ fn buildOutputType(
     var headerpad_max_install_names: bool = false;
     var dead_strip_dylibs: bool = false;
     var reference_trace: ?u32 = null;
+    var emit_time_trace: Emit = .no;
     var error_tracing: ?bool = null;
     var pdb_out_path: ?[]const u8 = null;
     var dwarf_format: ?std.dwarf.Format = null;
@@ -1323,6 +1324,15 @@ fn buildOutputType(
                         };
                     } else if (mem.eql(u8, arg, "-fno-reference-trace")) {
                         reference_trace = null;
+                    } else if (mem.eql(u8, arg, "-ftime-trace")) {
+                        emit_time_trace = .yes_default_path;
+                        try clang_argv.append(arg);
+                    } else if (mem.startsWith(u8, arg, "-ftime-trace=")) {
+                        emit_time_trace = .{ .yes = arg["-ftime-trace=".len..] };
+                        try clang_argv.append(arg);
+                    } else if (mem.eql(u8, arg, "-fnotime-trace")) {
+                        emit_time_trace = .no;
+                        try clang_argv.append(arg);
                     } else if (mem.eql(u8, arg, "-ferror-tracing")) {
                         error_tracing = true;
                     } else if (mem.eql(u8, arg, "-fno-error-tracing")) {
@@ -3031,6 +3041,21 @@ fn buildOutputType(
     };
     defer emit_docs_resolved.deinit();
 
+    var emit_time_trace_resolved = emit_time_trace.resolve("time-trace", output_to_cache) catch |err| {
+        switch (emit_time_trace) {
+            .yes => |p| {
+                fatal("unable to open directory from argument '-ftime-trace', '{s}': {s}", .{
+                    p, @errorName(err),
+                });
+            },
+            .yes_default_path => {
+                fatal("unable to open directory 'time-trace': {s}", .{@errorName(err)});
+            },
+            .no => unreachable,
+        }
+    };
+    defer emit_time_trace_resolved.deinit();
+
     const is_exe_or_dyn_lib = switch (output_mode) {
         .Obj => false,
         .Lib => (link_mode orelse .Static) == .Dynamic,
@@ -3346,6 +3371,7 @@ fn buildOutputType(
         .machine_code_model = machine_code_model,
         .color = color,
         .time_report = time_report,
+        .emit_time_trace = emit_time_trace_resolved.data,
         .stack_report = stack_report,
         .is_test = arg_mode == .zig_test,
         .each_lib_rpath = each_lib_rpath,

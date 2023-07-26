@@ -203,6 +203,7 @@ generated_implib: ?*GeneratedFile,
 generated_llvm_bc: ?*GeneratedFile,
 generated_llvm_ir: ?*GeneratedFile,
 generated_h: ?*GeneratedFile,
+generated_time_trace: ?*GeneratedFile,
 
 pub const CSourceFiles = struct {
     /// Relative to the build root.
@@ -466,6 +467,7 @@ pub fn create(owner: *std.Build, options: Options) *Compile {
         .generated_llvm_bc = null,
         .generated_llvm_ir = null,
         .generated_h = null,
+        .generated_time_trace = null,
 
         .target_info = target_info,
 
@@ -1003,6 +1005,15 @@ pub fn getEmittedLlvmBc(self: *Compile) LazyPath {
     return self.getEmittedFileGeneric(&self.generated_llvm_bc);
 }
 
+pub fn getTimeTrace(self: *Compile) LazyPath {
+    if (self.generated_time_trace) |g| return .{ .generated = g };
+    const arena = self.step.owner.allocator;
+    const generated_file = arena.create(GeneratedFile) catch @panic("OOM");
+    generated_file.* = .{ .step = &self.step };
+    self.generated_time_trace = generated_file;
+    return .{ .generated = generated_file };
+}
+
 pub fn addAssemblyFile(self: *Compile, source: LazyPath) void {
     const b = self.step.owner;
     const source_duped = source.dupe(b);
@@ -1311,6 +1322,14 @@ fn make(step: *Step, prog_node: *std.Progress.Node) !void {
 
     try addFlag(&zig_args, "llvm", self.use_llvm);
     try addFlag(&zig_args, "lld", self.use_lld);
+
+    if (b.time_trace) |time_trace| {
+        if (mem.eql(u8, time_trace, "")) {
+            try zig_args.append("-ftime-trace");
+        } else {
+            try zig_args.append(try std.fmt.allocPrint(b.allocator, "-ftime-trace={s}", .{time_trace}));
+        }
+    }
 
     if (self.target.ofmt) |ofmt| {
         try zig_args.append(try std.fmt.allocPrint(b.allocator, "-ofmt={s}", .{@tagName(ofmt)}));
@@ -2069,6 +2088,10 @@ fn make(step: *Step, prog_node: *std.Progress.Node) !void {
         // -femit-llvm-bc[=path]     Produce an optimized LLVM module as a .bc file (requires LLVM extensions)
         if (self.generated_llvm_bc) |lp| {
             lp.path = b.fmt("{s}{c}{s}.bc", .{ output_dir, sep, self.name });
+        }
+
+        if (self.generated_time_trace) |generated_time_trace| {
+            generated_time_trace.path = b.pathJoin(&.{ output_dir, "time-trace" });
         }
     }
 

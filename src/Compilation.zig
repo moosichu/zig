@@ -628,6 +628,7 @@ pub const InitOptions = struct {
     /// This is for stage1 and should be deleted upon completion of self-hosting.
     color: Color = .auto,
     reference_trace: ?u32 = null,
+    emit_time_trace: ?EmitLoc = null,
     error_tracing: ?bool = null,
     test_filter: ?[]const u8 = null,
     test_name_prefix: ?[]const u8 = null,
@@ -1109,6 +1110,7 @@ pub fn create(gpa: Allocator, options: InitOptions) !*Compilation {
         cache_helpers.addOptionalEmitLoc(&cache.hash, options.emit_bin);
         cache_helpers.addOptionalEmitLoc(&cache.hash, options.emit_implib);
         cache_helpers.addOptionalEmitLoc(&cache.hash, options.emit_docs);
+        cache_helpers.addOptionalEmitLoc(&cache.hash, options.emit_time_trace);
         cache.hash.addBytes(options.root_name);
         if (options.target.os.tag == .wasi) cache.hash.add(wasi_exec_model);
         // TODO audit this and make sure everything is in it
@@ -1428,6 +1430,34 @@ pub fn create(gpa: Allocator, options: InitOptions) !*Compilation {
             };
         };
 
+        const time_trace_emit: ?link.Emit = blk: {
+            const emit_time_trace = options.emit_time_trace orelse break :blk null;
+
+            if (emit_time_trace.directory) |directory| {
+                break :blk .{
+                    .directory = directory,
+                    .sub_path = emit_time_trace.basename,
+                };
+            }
+
+            // This is here for the same reason as in `bin_file_emit` above.
+            switch (cache_mode) {
+                .whole => break :blk null,
+                .incremental => {},
+            }
+
+            // Use the same directory as the bin, if possible.
+            if (bin_file_emit) |x| break :blk .{
+                .directory = x.directory,
+                .sub_path = emit_time_trace.basename,
+            };
+
+            break :blk .{
+                .directory = module.?.zig_cache_artifact_directory,
+                .sub_path = emit_time_trace.basename,
+            };
+        };
+
         // This is so that when doing `CacheMode.whole`, the mechanism in update()
         // can use it for communicating the result directory via `bin_file.emit`.
         // This is used to distinguish between -fno-emit-bin and -femit-bin
@@ -1450,6 +1480,7 @@ pub fn create(gpa: Allocator, options: InitOptions) !*Compilation {
             .emit = bin_file_emit,
             .implib_emit = implib_emit,
             .docs_emit = docs_emit,
+            .time_trace_emit = time_trace_emit,
             .root_name = root_name,
             .module = module,
             .target = options.target,

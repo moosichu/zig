@@ -99,6 +99,8 @@ pub const Options = struct {
     implib_emit: ?Emit,
     /// This is non-null when `-femit-docs` is provided.
     docs_emit: ?Emit,
+    /// This is non-null when `-ftime-trace` is provided.
+    time_trace_emit: ?Emit,
     target: std.Target,
     output_mode: std.builtin.OutputMode,
     link_mode: std.builtin.LinkMode,

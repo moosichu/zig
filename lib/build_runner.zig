@@ -253,6 +253,12 @@ pub fn main() !void {
                 };
             } else if (mem.eql(u8, arg, "-fno-reference-trace")) {
                 builder.reference_trace = null;
+            } else if (mem.eql(u8, arg, "-ftime-trace")) {
+                builder.time_trace = "zig-out/time-trace";
+            } else if (mem.startsWith(u8, arg, "-ftime-trace=")) {
+                builder.time_trace = arg["-ftime-trace=".len..];
+            } else if (mem.eql(u8, arg, "-fnotime-trace")) {
+                builder.time_trace = null;
             } else if (mem.startsWith(u8, arg, "-j")) {
                 const num = arg["-j".len..];
                 const n_jobs = std.fmt.parseUnsigned(u32, num, 10) catch |err| {
@@ -1009,6 +1015,8 @@ fn usage(builder: *std.Build, already_ran_build: bool, out_stream: anytype) !voi
         \\Advanced Options:
         \\  -freference-trace[=num]      How many lines of reference trace should be shown per compile error
         \\  -fno-reference-trace         Disable reference trace
+        \\  -ftime-trace[=path]          Enable build profiler and generate a json file for each artifact
+        \\  -fnotime-trace               Disable time-trace
         \\  --build-file [file]          Override path to build.zig
         \\  --cache-dir [path]           Override path to local Zig cache directory
         \\  --global-cache-dir [path]    Override path to global Zig cache directory
