@@ -28,6 +28,8 @@ pub const Tag = enum {
     cmpxchg_weak,
     compile_error,
     compile_log,
+    comptime_trace_begin,
+    comptime_trace_end,
     const_cast,
     ctz,
     c_undef,
@@ -351,6 +353,18 @@ pub const list = list: {
             .{
                 .tag = .compile_log,
                 .param_count = null,
+            },
+        },
+        .{
+            "@comptimeTraceBegin", .{
+                .tag = .comptime_trace_begin,
+                .param_count = 1,
+            },
+        },
+        .{
+            "@comptimeTraceEnd", .{
+                .tag = .comptime_trace_end,
+                .param_count = 0,
             },
         },
         .{

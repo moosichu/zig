@@ -2019,6 +2019,12 @@ pub const Inst = struct {
         /// Implements the `@inComptime` builtin.
         /// `operand` is `src_node: i32`.
         in_comptime,
+        /// Implements the `@comptimeTraceBegin` builtin.
+        /// `operand` is `src_node: i32`.
+        comptime_trace_begin,
+        /// Implements the `@comptimeTraceEnd` builtin.
+        /// `operand` is `src_node: i32`.
+        comptime_trace_end,
         /// Used as a placeholder instruction which is just a dummy index for Sema to replace
         /// with a specific value. For instance, this is used for the capture of an `errdefer`.
         /// This should never appear in a body.

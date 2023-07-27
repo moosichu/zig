@@ -8336,6 +8336,13 @@ fn builtinCall(
             const result = try gz.addExtendedMultiOpPayloadIndex(.compile_log, payload_index, params.len);
             return rvalue(gz, ri, result, node);
         },
+        .comptime_trace_begin => {
+            // TODO: pass through argument?
+            return rvalue(gz, ri, try gz.addNodeExtended(.comptime_trace_begin, node), node);
+        },
+        .comptime_trace_end => {
+            return rvalue(gz, ri, try gz.addNodeExtended(.comptime_trace_end, node), node);
+        },
         .field => {
             if (ri.rl == .ref) {
                 return gz.addPlNode(.field_ptr_named, node, Zir.Inst.FieldNamed{
