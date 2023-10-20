@@ -416,6 +416,7 @@ const TrackingBufferedWriter = tracking_buffered_writer.TrackingBufferedWriter(s
 // used for parsing. (use same error handling workflow etc.)
 /// Use same naming scheme for objects (as found elsewhere in the file).
 pub fn finalize(self: *Archive, allocator: Allocator) (FinalizeError || HandledIoError || CriticalError)!void {
+    // std.debug.print("I'm being called!!!\n", .{});
     const tracy = trace(@src());
     defer tracy.end();
     if (self.output_archive_type == .ambiguous) {
@@ -900,14 +901,15 @@ pub fn addToSymbolTable(self: *Archive, allocator: Allocator, archived_file: *co
 
                 if (macho_file.in_symtab) |in_symtab| {
                     for (in_symtab, 0..) |_, sym_index| {
-                        const sym = macho_file.getSourceSymbol(@as(u32, @intCast(sym_index)));
-                        if (sym != null and sym.?.ext() and sym.?.sect()) {
-                            const symbol = Symbol{
-                                .name = try allocator.dupe(u8, macho_file.getSymbolName(@as(u32, @intCast(sym_index)))),
-                                .file_index = file_index,
-                            };
+                        if (macho_file.getSourceSymbol(@as(u32, @intCast(sym_index)))) |sym| {
+                            if (sym.ext() and (sym.sect() or sym.tentative())) {
+                                const symbol = Symbol{
+                                    .name = try allocator.dupe(u8, macho_file.getSymbolName(@as(u32, @intCast(sym_index)))),
+                                    .file_index = file_index,
+                                };
 
-                            try self.symbols.append(allocator, symbol);
+                                try self.symbols.append(allocator, symbol);
+                            }
                         }
                     }
                 }

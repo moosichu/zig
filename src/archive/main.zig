@@ -298,12 +298,12 @@ fn processModifier(modifier_char: u8, modifiers: *Archive.Modifiers) bool {
 //     };
 // }
 
-pub fn linkAsArchive(archive_path: []const u8, file_names_ptr: []const [*:0]const u8, archive_type: Archive.ArchiveType) !void {
+pub fn linkAsArchive(gpa: std.mem.Allocator, archive_path: []const u8, file_names_ptr: []const [*:0]const u8, archive_type: Archive.ArchiveType) !void {
     var modifiers: Archive.Modifiers = .{};
     modifiers.build_symbol_table = true;
     modifiers.create = true;
 
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    var arena = std.heap.ArenaAllocator.init(gpa);
     defer arena.deinit();
 
     var allocator = arena.allocator();

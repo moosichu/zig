@@ -1165,7 +1165,12 @@ pub const File = struct {
                 .Linux => .gnu,
                 else => .gnu,
             };
-            archive.linkAsArchive(full_out_path, object_files.items, archive_type) catch @panic("OOM");
+            archive.linkAsArchive(
+                comp.gpa,
+                full_out_path,
+                object_files.items,
+                archive_type,
+            ) catch @panic("OOM");
         }
 
         if (!base.options.disable_lld_caching) {
