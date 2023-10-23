@@ -19,6 +19,8 @@ const Module = @import("Module.zig");
 const InternPool = @import("InternPool.zig");
 const Type = @import("type.zig").Type;
 const TypedValue = @import("TypedValue.zig");
+const archive = @import("archive/main.zig");
+const Archive = archive.Archive;
 
 /// When adding a new field, remember to update `hashAddSystemLibs`.
 /// These are *always* dynamically linked. Static libraries will be
@@ -1154,8 +1156,22 @@ pub const File = struct {
         const llvm = @import("codegen/llvm.zig");
         Builder.initializeLLVMTarget(base.options.target.cpu.arch);
         const os_tag = llvm.targetOs(base.options.target.os.tag);
-        const bad = llvm_bindings.WriteArchive(full_out_path_z, object_files.items.ptr, object_files.items.len, os_tag);
-        if (bad) return error.UnableToWriteArchive;
+        if (false) {
+            const bad = llvm_bindings.WriteArchive(full_out_path_z, object_files.items.ptr, object_files.items.len, os_tag);
+            if (bad) return error.UnableToWriteArchive;
+        } else {
+            const archive_type: Archive.ArchiveType = switch (os_tag) {
+                .MacOSX, .Darwin => .darwin,
+                .Linux => .gnu,
+                else => .gnu,
+            };
+            archive.linkAsArchive(
+                comp.gpa,
+                full_out_path,
+                object_files.items,
+                archive_type,
+            ) catch @panic("OOM");
+        }
 
         if (!base.options.disable_lld_caching) {
             Cache.writeSmallFile(directory.handle, id_symlink_basename, &digest) catch |err| {
